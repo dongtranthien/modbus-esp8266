@@ -202,11 +202,38 @@ void ModbusRTUTemplate::task() {
     	if (_reply != Modbus::REPLY_OFF)
 			rawSend(_slaveId, _frame, _len);
     }
+	if(isStartCheckFrequency){
+			isStartCheckFrequency = false;
+			timeStartCheckFrequency = millis();
+		}
+		else{
+			counterPoll++;
+			if(counterPoll >= 100){
+				uint32_t timeNow = millis();
+				float deltaTime;
+				if(timeNow >= timeStartCheckFrequency){
+					deltaTime = timeNow - timeStartCheckFrequency;
+				}
+				else{
+					deltaTime = 4294967296 - timeStartCheckFrequency + timeNow;
+				}
+				timeStartCheckFrequency = timeNow;
+
+				float frequency_t = counterPoll;
+				frequency_t = frequency_t/(deltaTime/1000);
+				counterPoll = 0;
+				frequencyPoll = frequency_t;
+			}
+		}
     // Cleanup
     free(_frame);
     _frame = nullptr;
     _len = 0;
 	if (isMaster) cleanup();
+}
+
+float ModbusRTU::getFrequencyWorking(){
+	return frequencyPoll;
 }
 
 bool ModbusRTUTemplate::cleanup() {
